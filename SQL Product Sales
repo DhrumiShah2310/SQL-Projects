@@ -1,0 +1,136 @@
+DROP TABLE sales_totals;
+DROP TABLE region;
+DROP TABLE product;
+
+CREATE TABLE Region   -- Creating a table name region to store the information related to region ;ike region_name, region_id and super_region_id 
+(region_id int primary key, -- specifying the primary key of the table 
+region_name varchar(50),
+super_region_id int,
+foreign key(super_region_id) references Region(region_id));  -- specifying the foreign key of the table as well 
+
+INSERT INTO region   -- inserting the values with respect to the fields 
+VALUES (101, 'North America', 101),
+       (102, 'USA', 102 ),
+       (103, 'Canada', 103),
+       (104, 'USA-Northeast', 104),
+       (105, 'USA-Southeast', 105),
+       (106, 'USA-West', 106),
+       (107, 'Mexico', 107);
+SELECT * FROM region;
+
+
+CREATE TABLE product (     -- creating a table product to enter the information of products available at the manufacturing company 
+    product_id INT PRIMARY KEY,
+    product_name varchar(128));
+    
+INSERT INTO product   -- inserting appropriate values in each field 
+VALUES (1256, "Gear - Large"),
+       (4437, "Gear - Small"),
+       (5567, "Crankshaft"),
+       (7684, "Sprocket");
+SELECT * FROM product;  
+
+
+CREATE TABLE sales_totals (  -- creating a table called sales total which is an amalgamation of the tables and consists of combined information on products, sales and regions 
+    product_id INT,
+    region_id INT,
+    year INT,
+    month INT,
+    sales INT,
+    CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_region FOREIGN KEY (region_id) REFERENCES region(region_id) ON DELETE CASCADE);
+
+INSERT INTO sales_totals  -- inserting appropriate values in the given fields 
+VALUES (1256, 104, 2020, 1, 1000),
+       (4437, 105, 2020, 2, 1200),
+       (7684, 106, 2020, 3, 800),
+       (1256, 103, 2020, 4, 2200),
+       (4437, 107, 2020, 5, 1700),
+       (7684, 107, 2020, 6, 750),
+       (1256, 107, 2020, 7, 1100),
+       (4437, 105, 2020, 8, 1050),
+       (7684, 106, 2020, 9, 600),
+       (1256, 103, 2020, 10, 1900),
+       (4437, 107, 2020, 11, 1500),
+       (7684, 104, 2020, 12, 900);
+SELECT * FROM sales_totals;
+
+-- Question 1)  
+-- adding a CASE expression that can be used to return the quarter number (1, 2, 3, or 4) only based on the month 
+SELECT 
+CASE 
+WHEN month > 0 AND month < 4 THEN '1'
+WHEN month > 3 AND month < 7 THEN '2'
+WHEN month > 6 AND month < 10 THEN '3'
+ELSE '4' 
+END AS Quarter 
+FROM sales_totals; 
+
+-- Question 2) 
+SELECT
+sum(CASE WHEN product_id = 1256 THEN sales ELSE 0 END) tot_sales_large_gears,
+sum(CASE WHEN product_id = 4437 THEN sales ELSE 0 END) tot_sales_small_gears, 
+sum(CASE WHEN product_id = 5567 THEN sales ELSE 0 END) tot_sales_crankshafts, 
+sum(CASE WHEN product_id = 7684 THEN sales ELSE 0 END) tot_sales_sprockets
+FROM sales_totals
+WHERE year = 2020;
+
+-- Question 3) 
+-- to retrieve all columns from the sales_totals table, along with a column called sales_rank which assigns a ranking to each row based on the value of the Sales column in descending order.
+SELECT product_id, region_id, year, month, sales, 
+RANK () OVER (ORDER BY sales desc) sales_rank 
+FROM sales_totals; 
+
+-- Question 4) 
+-- to retrieve all columns from the Sales_Totals table, along with a column called product_sales_rank which assigns a ranking to each row based on the value of the Sales column in descending order, with a separate set of rankings for each product
+SELECT product_id, region_id, year, month, sales, 
+RANK () OVER (PARTITION BY product_id ORDER BY sales desc) product_sales_rank
+FROM sales_totals; 
+
+-- Question 5) 
+-- using the same query as above but using the logic to only return ranks 1 or 2 
+SELECT * FROM (
+SELECT product_id, region_id, year, month, sales, 
+RANK () OVER (PARTITION BY product_id ORDER BY sales desc) product_sales_rank
+FROM sales_totals)t 
+WHERE product_sales_rank <= 2; 
+
+-- Question 6)
+--  to add a row to the Region table for Europe, and then add a row to the sales_totals table for the Europe region and the Sprocket product (product_id = 7684) for October 2020, with a sales total of $1,500.
+ SAVEPOINT SP1;
+INSERT INTO region (region_id, region_name, super_region_id) values (111, "Europe", null);
+SAVEPOINT SP2;
+INSERT INTO sales_totals (product_id, region_id, year, month, sales ) values (7684,111,2020,10,1500);
+
+-- Question 7)
+-- to create a view called Product_Sales_Totals which will group sales data by product and year
+CREATE VIEW product__sales__totals AS
+SELECT product_id, year, SUM(sales) AS product_sales, SUM( CASE WHEN product_id IN (1256, 4437) THEN sales ELSE 0 END )  AS gear_sales
+FROM sales_totals
+GROUP BY 1, 2;
+SELECT * FROM product__sales__totals;
+
+-- Question 8)
+--  to return all sales data for 2020, along with a column showing the percentage of sales for each product
+SELECT product_id,
+       region_id,
+       month,
+       total_sales,
+       ROUND((total_sales / SUM(total_sales) OVER ()) * 100, 2) pct_sales -- adding the formulae to derive pct_sales for the products 
+FROM (   SELECT product_id, region_id, month,
+		 SUM(sales) AS total_sales
+         FROM sales_totals
+         GROUP BY 1, 2, 3) tbl;
+
+-- Question 9)
+-- to return the year, month, and sales columns, along with a 4th column named prior_month_sales showing the sales from the prior month
+SELECT year, month, sales,
+       LAG(sales) over () prior_month_sales  -- first month sales will be null 
+FROM sales_totals
+ORDER BY 2;
+
+-- Question 10)
+--  to retrieve the name and type of each of the columns in the Product table
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_catalog = 'sales' AND table_name = 'product'; -- sales database and the table chosen is product 
