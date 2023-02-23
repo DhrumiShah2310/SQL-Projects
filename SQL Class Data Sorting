@@ -1,0 +1,213 @@
+SET SQL_SAFE_UPDATES = 0; -- Turning off the MySQL safety mode 
+
+ -- ------------------------------- PROMPT 1 ------------------------------------------
+ 
+CREATE table Class(  -- creating the first table Class as per mentioned in the prompt 
+class_id int primary key, -- mentioning the primary key for this table 
+class_name varchar(50)); 
+desc Class; 
+insert into Class values (101, 'Geometry'); -- inserting values to the fields of class_id and class_name 
+insert into Class values (102, 'English'); 
+insert into Class values (103, 'Physics'); 
+SELECT * 
+FROM Class ; 
+
+CREATE table Student(  -- creating a students table that stores information of the students like student_id and first_name, last_name of each student  
+student_id int primary key, -- mentioning the primary key of this table 
+first_name varchar (50),
+last_name varchar (50)); 
+desc Student;
+insert into Student values (500, 'Robert', 'Smith'); -- inserting the values of each field for each student 
+insert into Student values (762, 'Frank', 'Carter'); 
+insert into Student values (881, 'Joesph', 'Evans'); 
+insert into Student values (933, 'Anne', 'Barker'); 
+SELECT * 
+FROM Student; 
+
+CREATE table Enrollment( -- creating the table enrollment where the info is set to fields such as student_id, class_id, semester and grade 
+class_id int, 
+student_id int, 
+semester char(15), 
+grade char(1), 
+primary key(class_id, student_id, semester), -- primary keys of this table are mentioned 
+foreign key(class_id) references Class(class_id),   -- but class_id is typically a foreignkey because it is a primary key in the class table 
+foreign key(student_id) references Student(student_id)); -- this is also a foreignkey because it is a primary key in the Students table 
+desc Enrollment ; 
+insert into Enrollment values (101, 500, 'Fall 2019', 'A'); -- inserting the values into each field of the table 
+insert into Enrollment values (102, 500, 'Fall 2019', 'B'); 
+insert into Enrollment values (103, 762, 'Fall 2019', 'F'); 
+insert into Enrollment values (101, 881, 'Spring 2020','B'); 
+insert into Enrollment values (102, 881, 'Fall 2020', 'B'); 
+insert into Enrollment values (103, 762, 'Spring 2021', null); 
+SELECT * 
+FROM Enrollment ; 
+
+
+-- Question 1) 
+SELECT class_id, student_id, semester, grade  
+FROM Enrollment 
+WHERE grade = 'A' 
+or grade = 'B';  -- to display all the records with a grade A or B from the enrollment table 
+
+-- Question 2) 
+Select s.first_name, s.last_name   
+FROM Enrollment AS e 
+inner join Student as s 
+ON e.student_id = s.student_id 
+inner join Class AS c 
+ON e.class_id = c.class_id 
+WHERE c.class_name = 'Geometry'; -- to join the tables Student and Enrollments on field student_id and Course and Enrollments on field class_id and displays the first_name and last_name of those records where class_name is Geometry
+
+-- Question 3) 
+SELECT class_id, student_id, semester, grade 
+FROM Enrollment 
+WHERE grade != 'F' 
+or grade is null;  -- query will display all the details from Enrollment tables where grade is either not assigned yet or is not F 
+
+-- Question 4) 
+SELECT s.first_name, s.last_name, e.grade 
+FROM Enrollment as e 
+inner join Student as s 
+ON e.student_id = s.student_id 
+WHERE class_id = 102; -- joining the field of students first_name, last_name and grade along with class_id 102
+
+-- Question 5) 
+SELECT class_id,count(*)'Number of Student'
+FROM Enrollment 
+GROUP BY class_id;  -- counting the total number of students who have enrolled for a particular class based on the class_id in the enrollment table 
+
+-- Question 6) 
+SELECT first_name, last_name , grade 
+FROM Student s, Enrollment e 
+WHERE e.class_id = 102 AND s.student_id = e.student_id;
+
+-- Question 7) 
+UPDATE Enrollment 
+SET  grade = 
+(SELECT grade 
+FROM Student
+WHERE first_name = 'Robert' AND last_name = 'Smith');  -- setting the grade using update feature along with subquery method in the table Enrollment 
+
+-- Question 8) 
+INSERT INTO student VALUES (654, 'Michael', 'Cronin');  -- adding the information of a new student in the Student table by the field student_id, first_name, last_name
+
+-- Question 9) 
+INSERT INTO Enrollment (class_id, student_id, semester) 
+VALUES (
+(SELECT class_id 
+FROM Class 
+WHERE class_name = 'Geometry'), 
+(SELECT student_id 
+FROM Student 
+WHERE first_name = 'Michael' AND last_name = 'Cronin'),'Spring 2020'); -- Adding Michael Cronin’s enrollment in the Geometry class to the Enrollment table with the fields of first_name, last_name and semester 
+
+-- Question 10) 
+SELECT first_name, last_name 
+FROM Student 
+WHERE Student_id 
+NOT IN (SELECT Student_id FROM Enrollment);  -- using correlated subquery to return the students who have not enrolled in any class by using the fields first_name, last_name from Students table 
+
+-- Question 11) 
+SELECT first_name, last_name 
+FROM Student e
+WHERE 0 = ( 
+SELECT Student_id 
+FROM Student s 
+WHERE s.student_id >= e.student_id) ; -- returning the same results as above but using a non correlated subquery 
+
+-- Question 12) 
+DELETE FROM Student 
+WHERE student_id NOT IN 
+(SELECT student_id FROM Enrollment) ; --  to remove any rows from the Student table where the person has not enrolled in any classes by using non correlated subquery 
+
+
+
+-- --------------------------------------------------------- PROMPT 2 -------------------------------------------------------------------
+
+DROP database customer;  -- To avoid duplicate and multiple entries 
+CREATE database IF NOT EXISTS customer; 
+USE customer; 
+
+SELECT 'CREATING DATABASE STRUCTURE' as 'INFO'; 
+
+CREATE table customer ( -- creating the table customer and speicifying its given fields 
+cust_id INT   NOT NULL, 
+cust_name VARCHAR(32)   NOT NULL, 
+PRIMARY KEY (cust_id)); 
+
+INSERT INTO customer (cust_id, cust_name) -- inserting  the values to the customer table as per the fields cust_id and cust_name 
+VALUES 
+(121, 'Acme Wholesalers'),
+(234, 'Griffin electric'), 
+(336, 'East Coast Marine Supplies'), 
+(544, 'Sanford Automotive'); 
+
+CREATE table customer_order (  -- craeting a table customer_order to insert the fields of customer id, order number 
+order_num INT NOT NULL, 
+cust_id INT NOT NULL, 
+order_date DATE NOT NULL, 
+FOREIGN KEY (cust_id) REFERENCES customer (cust_id), -- mentioning the foreign key here which is also a primary key in the customer table 
+PRIMARY KEY (order_num, cust_id)); -- primary key of this table are order_num and cust_id 
+
+INSERT INTO customer_order  (order_num, cust_id, order_date)  -- inserting the appropriate values with respect to each field 
+VALUES 
+(1, 121, '2017-02-15'), 
+(2, 234, '2018-07-24'), 
+(3, 336, '2017-05-02'), 
+(4, 121, '2017-02-15'), 
+(5, 336, '2018-03-19'), 
+(6, 234, '2018-07-24'), 
+(7, 121, '2017-02-15'), 
+(8, 121, '2020-06-12'), 
+(9, 336, '2020-06-12'), 
+(10, 234, '2018-07-24'); 
+
+-- 	Question 1) 
+SELECT cust_id 
+FROM customer_order 
+GROUP BY cust_id;  -- to return the customer_id from the customer_order table 
+
+-- Question 2) 
+SELECT cust_id, max(order_date) last_order 
+FROM customer_order 
+GROUP BY cust_id;  -- to retrieve cust_id along with the latest order date for each customer
+
+-- Question 3) 
+SELECT * 
+FROM customer_order 
+ORDER BY cust_id asc, order_date desc; -- to retrieve all rows and columns from the Customer_Order table, with the results sorted by order date descending (latest date first) and then by customer ID ascending.
+
+-- Question 4) 
+SELECT cust_id
+FROM customer_order
+WHERE order_num >= 3; -- to retrive customers with the lowest order total which is atleast 3 
+
+-- Question 5) 
+SELECT cust_id, order_date, count(*) total_orders 
+FROM customer_order 
+GROUP BY cust_id, order_date 
+HAVING total_orders > 1;  -- to retrieve only those customers who had more than 2 orders on the same day 
+
+-- Question 6) 
+SELECT c.cust_name 
+FROM customer c 
+WHERE 3 = 
+(SELECT count(*)
+FROM customer_order o 
+WHERE c.cust_id = o.cust_id);  -- to return the name of customers who have placed exactly 3 orders without repeating the name of the customer more than once 
+
+-- Question 7) 
+SELECT cust_name 
+FROM customer 
+WHERE cust_id IN (SELECT cust_id
+FROM customer_order 
+GROUP BY cust_id 
+HAVING count(*) = 3);  -- to return the same data as above but by using non correlated subquery 
+
+-- Question 8) 
+SELECT cust_id, -- not adding an alias name to this field because when tried c.cust_id, it was displaying unknown field in the output. 
+(SELECT COUNT(*)
+FROM customer_order o
+WHERE cust_id = o.cust_id) 
+AS total_orders
+FROM customer ;  -- to retrieve the name of customer along with the total no of orders using scalar correlated subquery 
