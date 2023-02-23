@@ -5,6 +5,7 @@ Region,
 Small_Bags,
 (Small_Bags / Total_Bags) * 100 as Small_Bags_Percent
 FROM `nimble-chess-347517.avacado_data.avacado_prices`
+WHERE Total_Bags <>  0
 
 -- to compare and verify if the total amount of bags is the same 
 SELECT
@@ -17,4 +18,3 @@ Total_Bags,
 Small_Bags + Large_Bags + XLarge_Bags as New_Total_bags
 FROM `nimble-chess-347517.avacado_data.avacado_prices` 
 
--- 
